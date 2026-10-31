@@ -10,6 +10,9 @@ anything that needs a compositor fact receives it as a property.
   tint), with `strength` mixing the transform and `glazeOpacity` fading it.
 - **`Shadow`** — an outside-only drop shadow with Hyprland's sharp and soft
   paths, cutting the surface out of the shadow box.
+- **`Oklab`** — OKLab lightness arithmetic on QML colors: `toLab`, `fromLab`,
+  `lightness`, `isLight`, and an additive `shift(color, delta)` clamped to the
+  gamut. It is the colour math the other two use, exposed for token ladders.
 
 Both shaders carry the superellipse rounding power; geometry is Qt logical
 pixels.
@@ -17,7 +20,7 @@ pixels.
 ## Use
 
 ```qml
-import "libs/irides"
+import "irides"
 
 Item {
     // ... a rounded fill ...
