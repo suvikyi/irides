@@ -5,21 +5,21 @@ import QtQuick
 // lighten, rotate hue, change chroma, or tint.
 //
 // With Hyprion available the compositor samples the real framebuffer,
-// including the backdrop behind a translucent surface. The ShaderEffect is
-// the portable fallback and can only transform an explicit `source` texture
-// or paint a flat band.
+// including the backdrop behind a translucent surface. Request blur separately
+// through ext-background-effect-v1; the grade samples the blurred result. The
+// ShaderEffect is the portable fallback and can only transform an explicit
+// `source` texture or paint a flat band.
 ShaderEffect {
     id: root
 
-    // v1 supports the inset area and the fill source. The protocol defines
-    // outset, fill-area, backdrop and blur modes for later primitives; the
-    // compositor advertises what it implements.
+    // Area bits. The compositor advertises which it implements.
     readonly property int areaInset: 1
-    property int area: areaInset
-    // `source` below is the local ShaderEffect input; sourceMode is what the
-    // compositor samples.
-    readonly property int sourceFill: 1
-    property int sourceMode: sourceFill
+    readonly property int areaOutset: 2
+    readonly property int areaFill: 4
+    // Match the old two-band component automatically; a caller can override
+    // this with areaFill or an explicit bit combination.
+    property int area: (insetSize > 0 && outsetSize > 0) ? (areaInset | areaOutset)
+        : (outsetSize > 0 ? areaOutset : areaInset)
 
     // Band widths. Zero disables either band.
     property real insetSize: 0
@@ -56,7 +56,6 @@ ShaderEffect {
         id: compositor
         item: root
         area: root.area
-        sourceMode: root.sourceMode
         enabled: root.painting
         insetSize: root.insetSize
         outsetSize: root.outsetSize

@@ -24,8 +24,8 @@ class HyprionGradeManager {
             return m_manager != nullptr;
         }
 
-        bool                       supports(uint32_t areas, uint32_t sources) const {
-            return m_manager && m_capabilitiesKnown && (m_areas & areas) != 0 && (m_sources & sources) != 0;
+        bool                       supports(uint32_t areas) const {
+            return m_manager && m_capabilitiesKnown && (m_areas & areas) != 0;
         }
 
         wl_display*                display() const {
@@ -74,10 +74,9 @@ class HyprionGradeManager {
                 grade->managerChanged();
         }
 
-        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas, uint32_t sources) {
+        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas) {
             auto& self = *static_cast<HyprionGradeManager*>(data);
             self.m_areas = areas;
-            self.m_sources = sources;
             self.m_capabilitiesKnown = true;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
@@ -91,7 +90,6 @@ class HyprionGradeManager {
             self.m_managerName = 0;
             self.m_capabilitiesKnown = false;
             self.m_areas = 0;
-            self.m_sources = 0;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
         }
@@ -106,7 +104,6 @@ class HyprionGradeManager {
         uint32_t                  m_managerName = 0;
         bool                      m_capabilitiesKnown = false;
         uint32_t                  m_areas = 0;
-        uint32_t                  m_sources = 0;
         std::vector<HyprionGrade*> m_grades;
 };
 
@@ -166,17 +163,6 @@ void HyprionGrade::setArea(int value) {
     updateActive();
     scheduleFlush();
 }
-int HyprionGrade::sourceMode() const {
-    return m_sourceMode;
-}
-void HyprionGrade::setSourceMode(int value) {
-    if (m_sourceMode == value)
-        return;
-    m_sourceMode = value;
-    emit sourceModeChanged();
-    updateActive();
-    scheduleFlush();
-}
 bool HyprionGrade::enabled() const {
     return m_enabled;
 }
@@ -206,11 +192,7 @@ void HyprionGrade::setOutsetSize(qreal value) {
         return;
     m_outsetSize = value;
     emit outsetSizeChanged();
-    // v1 draws the inset band only. Keep the local ShaderEffect for the
-    // outset rather than silently dropping it.
-    if (m_outsetSize > 0)
-        detachSurface();
-    else if (m_manager && m_manager->available())
+    if (m_manager && m_manager->available())
         attachSurface();
     updateActive();
     scheduleFlush();
@@ -320,13 +302,14 @@ bool HyprionGrade::active() const {
 }
 
 void HyprionGrade::managerChanged() {
-    if (!m_manager || !m_manager->available() || m_outsetSize > 0) {
+    if (!m_manager || !m_manager->available()) {
         detachSurface();
         updateActive();
         return;
     }
     attachSurface();
     updateActive();
+    scheduleFlush();
 }
 
 void HyprionGrade::setSupported(bool supported) {
@@ -334,6 +317,7 @@ void HyprionGrade::setSupported(bool supported) {
         return;
     m_supported = supported;
     updateActive();
+    scheduleFlush();
 }
 
 void HyprionGrade::attachWindow() {
@@ -379,7 +363,7 @@ void HyprionGrade::detachWindow() {
 }
 
 void HyprionGrade::attachSurface() {
-    if (!m_waylandWindow || !m_manager || !m_manager->available() || m_outsetSize > 0)
+    if (!m_waylandWindow || !m_manager || !m_manager->available())
         return;
     auto* window = static_cast<QtWaylandClient::QWaylandWindow*>(m_waylandWindow);
     if (!window || !window->surface() || m_surface == window->surface())
@@ -406,7 +390,7 @@ void HyprionGrade::detachSurface() {
 }
 
 void HyprionGrade::updateActive() {
-    const bool active = m_enabled && m_supported && m_grade && m_manager && m_manager->supports(m_area, m_sourceMode) && m_outsetSize <= 0;
+    const bool active = m_enabled && m_supported && m_grade && m_manager && m_manager->supports(m_area);
     setActive(active);
 }
 
@@ -428,7 +412,7 @@ void HyprionGrade::scheduleFlush() {
 }
 
 void HyprionGrade::flush() {
-    if (!m_item || !m_window || !m_grade || !m_manager || !m_manager->display() || m_outsetSize > 0 || !m_manager->supports(m_area, m_sourceMode))
+    if (!m_item || !m_window || !m_grade || !m_manager || !m_manager->display() || !m_manager->supports(m_area))
         return;
 
     const QPointF position = m_item->mapToItem(m_window->contentItem(), QPointF(0, 0));
@@ -450,6 +434,5 @@ void HyprionGrade::flush() {
     hyprion_grade_v1_set_style(grade, wl_fixed_from_double(m_lightness), wl_fixed_from_double(m_saturation), wl_fixed_from_double(m_chroma),
                                wl_fixed_from_double(m_hue), wl_fixed_from_double(m_strength), wl_fixed_from_double(m_opacity), tintArgb,
                                wl_fixed_from_double(m_tintStrength));
-    hyprion_grade_v1_set_source(grade, static_cast<uint32_t>(m_sourceMode));
     wl_display_flush(m_manager->display());
 }
