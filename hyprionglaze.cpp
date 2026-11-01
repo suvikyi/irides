@@ -57,11 +57,6 @@ class HyprionGlazeManager {
             wl_display_roundtrip(m_display);
         }
 
-        ~HyprionGlazeManager() {
-            if (m_registry)
-                wl_registry_destroy(m_registry);
-        }
-
         static void global(void* data, wl_registry* registry, uint32_t name, const char* interface, uint32_t version) {
             auto& self = *static_cast<HyprionGlazeManager*>(data);
             if (self.m_manager || strcmp(interface, hyprion_glaze_manager_v1_interface.name) != 0)
