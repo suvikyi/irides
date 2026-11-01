@@ -1,4 +1,0 @@
-module Irides
-singleton Oklab 1.0 Oklab.qml
-Glaze 1.0 Glaze.qml
-Shadow 1.0 Shadow.qml

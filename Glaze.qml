@@ -49,7 +49,30 @@ ShaderEffect {
     readonly property real surfaceHeight: Math.max(0, height - 2 * outsetSize)
 
     readonly property bool painting: insetSize > 0 || outsetSize > 0
-    visible: painting
+
+    // Ask Hyprion to draw the ring in the compositor when the protocol is
+    // available. That path samples the real framebuffer, including the
+    // backdrop behind a translucent surface, which this ShaderEffect cannot
+    // reach. The ShaderEffect remains the fallback for other compositors.
+    HyprionGlaze {
+        id: compositor
+        item: root
+        insetSize: root.insetSize
+        outsetSize: root.outsetSize
+        radius: root.radius
+        roundingPower: root.roundingPower
+        lightness: root.lightness
+        saturation: root.saturation
+        chroma: root.chroma
+        hue: root.hue
+        strength: root.strength
+        opacity: root.glazeOpacity
+        tint: root.tint
+        tintStrength: root.tintStrength
+    }
+
+    readonly property bool compositorActive: compositor.active
+    visible: painting && !compositorActive
 
     fragmentShader: Qt.resolvedUrl("glaze.frag.qsb")
     property vector2d itemSize: Qt.vector2d(width, height)
