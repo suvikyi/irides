@@ -4,21 +4,22 @@ QML visual effects extracted from Hyprion's border shader and Hyprland's
 rounded-shadow geometry. Two components, no orbit animation, no host imports —
 anything that needs a compositor fact receives it as a property.
 
-`Grade` is the primitive: it samples pixels and applies an OKLab colour
-transform over an area (inset, outset, or fill). It can either paint its local
-ShaderEffect or ask a running Hyprion instance to grade the area in the
-compositor. The compositor path samples the real framebuffer, including the
-backdrop behind a translucent surface, and falls back to the local shader when
-the `hyprion_grade_manager_v1` global or the requested area is unavailable.
-Blur is requested separately with `ext-background-effect-v1`; the grade then
-samples the composited blurred pixels. `composite` selects `replace` or `over`;
-`auto` keeps outset source-over and inset/fill replacement.
+`Grade` is the primitive: it samples pixels and applies a colour transform over
+an area (inset, outset, or fill). It can either paint its local ShaderEffect or
+ask a running Hyprion instance to grade the area in the compositor. The
+compositor path samples the real framebuffer, including the backdrop behind a
+translucent surface, and uses OKLab for SDR or Jzazbz for HDR. It falls back to
+the local SDR sRGB shader when the `hyprion_grade_manager_v1` global or the
+requested area/mode is unavailable. Blur is requested separately with
+`ext-background-effect-v1`; the grade then samples the composited blurred
+pixels. `mode` selects `in_place` or `over`; `auto` keeps outset source-over
+and inset/fill in-place.
 
-- **`Grade`** — a sampled OKLab colour grade over a rounded area. Inset and
-  outset bands are geometry; glazes, shades, tints and washes are effects built
+- **`Grade`** — a sampled colour grade over a rounded area. Inset and
+  outset bands are geometry; glazes, shades, colorizations and washes are effects built
   from a grade. The inset band paints a colour or transforms the pixels
-  beneath it in OKLab (lightness, hue rotation, chroma multiplier and offset,
-  tint), with `strength` mixing the transform and `gradeOpacity` fading it.
+  beneath it in the grade space (lightness, hue rotation, chroma multiplier and
+  offset, and a colorize gradient target), with `gradeOpacity` fading it. `area` defaults to inset; set it explicitly for outset or fill. `colorizeColors` and `colorizeAngle` use Hyprland's gradient format; the local fallback supports the same stops, up to ten, in SDR.
 - **`Shadow`** — an outside-only drop shadow with Hyprland's sharp and soft
   paths, cutting the surface out of the shadow box.
 - **`Oklab`** — OKLab lightness arithmetic on QML colors: `toLab`, `fromLab`,
@@ -31,7 +32,7 @@ pixels.
 ## Use
 
 ```qml
-import Irides 1.0
+import Irides 0.2
 
 Item {
     // ... a rounded fill ...
@@ -75,7 +76,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ```
 
-Add `build/qml` to `QML_IMPORT_PATH`; the module is imported as `Irides 1.0`.
+Add `build/qml` to `QML_IMPORT_PATH`; the module is imported as `Irides 0.2`.
 The Qt Wayland client development headers are required.
 
 The `*.frag.qsb` files are generated from the `*.frag` sources when they

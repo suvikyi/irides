@@ -13,14 +13,24 @@ layout(std140, binding = 0) uniform buf {
   vec4 insetPaint;      // inset band colour (painted path)
   vec4 outsetPaint;     // outset band colour
   float flatPaint;      // 1 = paint the inset band, 0 = transform the source
-  float glazeOpacity;
+  float gradeOpacity;
   float lightness;
   float saturation;
   float chroma;
   float hue;
-  float strength;
-  vec4 tint;
-  float tintStrength;
+  float colorizeStrength;
+  int colorizeStopCount;
+  float colorizeAngle;
+  vec4 colorizeStop0;
+  vec4 colorizeStop1;
+  vec4 colorizeStop2;
+  vec4 colorizeStop3;
+  vec4 colorizeStop4;
+  vec4 colorizeStop5;
+  vec4 colorizeStop6;
+  vec4 colorizeStop7;
+  vec4 colorizeStop8;
+  vec4 colorizeStop9;
 };
 layout(binding = 1) uniform sampler2D source;
 
@@ -109,7 +119,45 @@ float borderCoverage(vec2 point, vec2 halfSize, float radius, float outerRadius,
     * (1.0 - smoothstep(0.0, 1.0, (edge - thickness + smoothing) / (smoothing * 2.0)));
 }
 
-vec2 tintChroma(vec4 color) {
+vec4 gradientStop(int index) {
+  if (index <= 0) return colorizeStop0;
+  if (index == 1) return colorizeStop1;
+  if (index == 2) return colorizeStop2;
+  if (index == 3) return colorizeStop3;
+  if (index == 4) return colorizeStop4;
+  if (index == 5) return colorizeStop5;
+  if (index == 6) return colorizeStop6;
+  if (index == 7) return colorizeStop7;
+  if (index == 8) return colorizeStop8;
+  return colorizeStop9;
+}
+
+vec4 sampleColorizeGradient(vec2 coord) {
+  if (colorizeStopCount <= 0)
+    return vec4(0.0);
+  if (colorizeStopCount == 1)
+    return colorizeStop0;
+
+  vec2 normalized = clamp(coord, vec2(0.0), vec2(1.0));
+  float angle = radians(colorizeAngle);
+  if (angle > 4.71) {
+    normalized.y = 1.0 - normalized.y;
+    angle = 6.28 - angle;
+  } else if (angle > 3.14) {
+    normalized = vec2(1.0) - normalized;
+    angle = angle - 3.14;
+  } else if (angle > 1.57) {
+    normalized.x = 1.0 - normalized.x;
+    angle = 3.14 - angle;
+  }
+
+  float progress = (normalized.y * sin(angle) + normalized.x * (1.0 - sin(angle))) * float(colorizeStopCount - 1);
+  int lower = int(floor(progress));
+  int upper = lower + 1;
+  return mix(gradientStop(lower), gradientStop(upper), progress - float(lower));
+}
+
+vec2 colorizeChroma(vec4 color) {
   // Colour uniforms arrive premultiplied; the chroma wanted here is straight.
   vec3 straight = color.a > 0.001 ? clamp(color.rgb / color.a, vec3(0.0), vec3(1.0))
     : vec3(0.0);
@@ -118,7 +166,7 @@ vec2 tintChroma(vec4 color) {
 
 // Hyprion's transformSample, trimmed to SDR sRGB. Premultiplied in,
 // premultiplied out.
-vec4 transformSample(vec4 sampleColor) {
+vec4 transformSample(vec4 sampleColor, vec2 colorizeTarget) {
   if (sampleColor.a <= 0.001)
     return sampleColor;
   vec3 straight = clamp(sampleColor.rgb / sampleColor.a, vec3(0.0), vec3(1.0));
@@ -138,8 +186,8 @@ vec4 transformSample(vec4 sampleColor) {
   float offset = chroma * smoothstep(0.0, 0.02, magnitude);
   lab.yz = rotated * max(magnitude * saturation + offset, 0.0);
 
-  if (tintStrength > 0.0)
-    lab.yz = mix(lab.yz, tintChroma(tint), tintStrength);
+  if (colorizeStrength > 0.0)
+    lab.yz = mix(lab.yz, colorizeTarget, colorizeStrength);
 
   vec3 adjusted = toSrgb(clamp(compressChroma(lab.x, lab.yz), vec3(0.0), vec3(1.0)));
   return vec4(adjusted * sampleColor.a, sampleColor.a);
@@ -180,11 +228,10 @@ void main() {
     if (flatPaint > 0.5) {
       result += insetPaint * coverageInset;
     } else {
-      float amount = clamp(glazeOpacity * coverageInset, 0.0, 1.0);
+      float amount = clamp(gradeOpacity * coverageInset, 0.0, 1.0);
       vec4 band = sampleColor;
-      if (amount > 0.0 && strength > 0.0 && (lightness != 0.0 || saturation != 1.0
-          || chroma != 0.0 || hue != 0.0 || tintStrength > 0.0))
-        band = mix(sampleColor, transformSample(sampleColor), strength);
+      if (amount > 0.0 && (lightness != 0.0 || saturation != 1.0 || chroma != 0.0 || hue != 0.0 || colorizeStrength > 0.0))
+        band = transformSample(sampleColor, colorizeChroma(sampleColorizeGradient(qt_TexCoord0)));
       result += band * coverageInset;
     }
   }

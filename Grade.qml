@@ -1,13 +1,14 @@
 import QtQuick
 
-// A sampled OKLab colour grade over a rounded area. The inset and outset
-// bands are geometry; the grade itself is direction-agnostic and can darken,
-// lighten, rotate hue, change chroma, or tint.
+// A sampled colour grade over a rounded area. The inset and outset bands are
+// geometry; the grade itself is direction-agnostic and can darken, lighten,
+// rotate hue, change chroma, or colorize.
 //
 // With Hyprion available the compositor samples the real framebuffer,
-// including the backdrop behind a translucent surface. Request blur separately
-// through ext-background-effect-v1; the grade samples the blurred result. The
-// ShaderEffect is the portable fallback and can only transform an explicit
+// including the backdrop behind a translucent surface, and grades in OKLab on
+// SDR or Jzazbz on HDR. Request blur separately through
+// ext-background-effect-v1; the grade samples the blurred result. The
+// ShaderEffect is the portable SDR fallback and can only transform an explicit
 // `source` texture or paint a flat band.
 ShaderEffect {
     id: root
@@ -16,16 +17,13 @@ ShaderEffect {
     readonly property int areaInset: 1
     readonly property int areaOutset: 2
     readonly property int areaFill: 4
-    // Match the old two-band component automatically; a caller can override
-    // this with areaFill or an explicit bit combination.
-    property int area: (insetSize > 0 && outsetSize > 0) ? (areaInset | areaOutset)
-        : (outsetSize > 0 ? areaOutset : areaInset)
+    property int area: areaInset
 
-    // Composite mode. Auto keeps outset source-over and inset/fill replace.
-    readonly property int compositeAuto: -1
-    readonly property int compositeReplace: 1
-    readonly property int compositeOver: 2
-    property int composite: compositeAuto
+    // Grade mode. Auto keeps outset source-over and inset/fill in-place.
+    readonly property int modeAuto: -1
+    readonly property int modeInPlace: 1
+    readonly property int modeOver: 2
+    property int mode: modeAuto
 
     // Band widths. Zero disables either band.
     property real insetSize: 0
@@ -46,9 +44,20 @@ ShaderEffect {
     property real saturation: 1
     property real chroma: 0
     property real hue: 0
-    property real strength: 1
-    property color tint: "transparent"
-    property real tintStrength: 0
+    property var colorizeColors: []
+    property real colorizeAngle: 0
+    property real colorizeStrength: 0
+    readonly property int colorizeStopCount: Math.min(colorizeColors.length, 10)
+    readonly property color colorizeStop0: colorizeStopCount > 0 ? colorizeColors[0] : "transparent"
+    readonly property color colorizeStop1: colorizeStopCount > 1 ? colorizeColors[1] : colorizeStop0
+    readonly property color colorizeStop2: colorizeStopCount > 2 ? colorizeColors[2] : colorizeStop1
+    readonly property color colorizeStop3: colorizeStopCount > 3 ? colorizeColors[3] : colorizeStop2
+    readonly property color colorizeStop4: colorizeStopCount > 4 ? colorizeColors[4] : colorizeStop3
+    readonly property color colorizeStop5: colorizeStopCount > 5 ? colorizeColors[5] : colorizeStop4
+    readonly property color colorizeStop6: colorizeStopCount > 6 ? colorizeColors[6] : colorizeStop5
+    readonly property color colorizeStop7: colorizeStopCount > 7 ? colorizeColors[7] : colorizeStop6
+    readonly property color colorizeStop8: colorizeStopCount > 8 ? colorizeColors[8] : colorizeStop7
+    readonly property color colorizeStop9: colorizeStopCount > 9 ? colorizeColors[9] : colorizeStop8
 
     readonly property real surfaceWidth: Math.max(0, width - 2 * outsetSize)
     readonly property real surfaceHeight: Math.max(0, height - 2 * outsetSize)
@@ -62,7 +71,7 @@ ShaderEffect {
         id: compositor
         item: root
         area: root.area
-        composite: root.composite
+        mode: root.mode
         enabled: root.painting
         insetSize: root.insetSize
         outsetSize: root.outsetSize
@@ -72,10 +81,10 @@ ShaderEffect {
         saturation: root.saturation
         chroma: root.chroma
         hue: root.hue
-        strength: root.strength
         opacity: root.gradeOpacity
-        tint: root.tint
-        tintStrength: root.tintStrength
+        colorizeColors: root.colorizeColors
+        colorizeAngle: root.colorizeAngle
+        colorizeStrength: root.colorizeStrength
     }
 
     readonly property bool compositorActive: compositor.active

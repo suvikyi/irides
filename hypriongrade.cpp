@@ -28,8 +28,8 @@ class HyprionGradeManager {
             return m_manager && m_capabilitiesKnown && (m_areas & areas) != 0;
         }
 
-        bool                       supportsComposite(uint32_t composite) const {
-            return m_manager && m_capabilitiesKnown && (m_composites & composite) != 0;
+        bool                       supportsMode(uint32_t mode) const {
+            return m_manager && m_capabilitiesKnown && (m_modes & mode) != 0;
         }
 
         wl_display*                display() const {
@@ -78,10 +78,10 @@ class HyprionGradeManager {
                 grade->managerChanged();
         }
 
-        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas, uint32_t composites) {
+        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas, uint32_t modes) {
             auto& self = *static_cast<HyprionGradeManager*>(data);
             self.m_areas = areas;
-            self.m_composites = composites;
+            self.m_modes = modes;
             self.m_capabilitiesKnown = true;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
@@ -95,7 +95,7 @@ class HyprionGradeManager {
             self.m_managerName = 0;
             self.m_capabilitiesKnown = false;
             self.m_areas = 0;
-            self.m_composites = 0;
+            self.m_modes = 0;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
         }
@@ -110,7 +110,7 @@ class HyprionGradeManager {
         uint32_t                  m_managerName = 0;
         bool                      m_capabilitiesKnown = false;
         uint32_t                  m_areas = 0;
-        uint32_t                  m_composites = 0;
+        uint32_t                  m_modes = 0;
         std::vector<HyprionGrade*> m_grades;
 };
 
@@ -170,14 +170,14 @@ void HyprionGrade::setArea(int value) {
     updateActive();
     scheduleFlush();
 }
-int HyprionGrade::composite() const {
-    return m_composite;
+int HyprionGrade::mode() const {
+    return m_mode;
 }
-void HyprionGrade::setComposite(int value) {
-    if (m_composite == value)
+void HyprionGrade::setMode(int value) {
+    if (m_mode == value)
         return;
-    m_composite = value;
-    emit compositeChanged();
+    m_mode = value;
+    emit modeChanged();
     updateActive();
     scheduleFlush();
 }
@@ -275,16 +275,6 @@ void HyprionGrade::setHue(qreal value) {
     emit hueChanged();
     scheduleFlush();
 }
-qreal HyprionGrade::strength() const {
-    return m_strength;
-}
-void HyprionGrade::setStrength(qreal value) {
-    if (m_strength == value)
-        return;
-    m_strength = value;
-    emit strengthChanged();
-    scheduleFlush();
-}
 qreal HyprionGrade::opacity() const {
     return m_opacity;
 }
@@ -295,24 +285,34 @@ void HyprionGrade::setOpacity(qreal value) {
     emit opacityChanged();
     scheduleFlush();
 }
-QColor HyprionGrade::tint() const {
-    return m_tint;
+QVariantList HyprionGrade::colorizeColors() const {
+    return m_colorizeColors;
 }
-void HyprionGrade::setTint(const QColor& value) {
-    if (m_tint == value)
+void HyprionGrade::setColorizeColors(const QVariantList& value) {
+    if (m_colorizeColors == value)
         return;
-    m_tint = value;
-    emit tintChanged();
+    m_colorizeColors = value;
+    emit colorizeColorsChanged();
     scheduleFlush();
 }
-qreal HyprionGrade::tintStrength() const {
-    return m_tintStrength;
+qreal HyprionGrade::colorizeAngle() const {
+    return m_colorizeAngle;
 }
-void HyprionGrade::setTintStrength(qreal value) {
-    if (m_tintStrength == value)
+void HyprionGrade::setColorizeAngle(qreal value) {
+    if (m_colorizeAngle == value)
         return;
-    m_tintStrength = value;
-    emit tintStrengthChanged();
+    m_colorizeAngle = value;
+    emit colorizeAngleChanged();
+    scheduleFlush();
+}
+qreal HyprionGrade::colorizeStrength() const {
+    return m_colorizeStrength;
+}
+void HyprionGrade::setColorizeStrength(qreal value) {
+    if (m_colorizeStrength == value)
+        return;
+    m_colorizeStrength = value;
+    emit colorizeStrengthChanged();
     scheduleFlush();
 }
 bool HyprionGrade::active() const {
@@ -409,7 +409,7 @@ void HyprionGrade::detachSurface() {
 
 void HyprionGrade::updateActive() {
     const bool active = m_enabled && m_supported && m_grade && m_manager && m_manager->supports(m_area) &&
-        (m_composite < 0 || m_manager->supportsComposite(static_cast<uint32_t>(m_composite)));
+        (m_mode < 0 || m_manager->supportsMode(static_cast<uint32_t>(m_mode)));
     setActive(active);
 }
 
@@ -447,13 +447,31 @@ void HyprionGrade::flush() {
     hyprion_grade_v1_set_enabled(grade, m_enabled ? 1 : 0);
     hyprion_grade_v1_set_box(grade, x, y, width, height, wl_fixed_from_double(m_radius), wl_fixed_from_double(m_roundingPower));
     hyprion_grade_v1_set_area(grade, static_cast<uint32_t>(m_area), qRound(m_insetSize), qRound(m_outsetSize));
-    if (m_composite >= 0)
-        hyprion_grade_v1_set_composite(grade, static_cast<uint32_t>(m_composite));
+    if (m_mode >= 0)
+        hyprion_grade_v1_set_mode(grade, static_cast<uint32_t>(m_mode));
 
-    const QColor tint = m_tint;
-    const uint32_t tintArgb = (static_cast<uint32_t>(tint.red()) << 16) | (static_cast<uint32_t>(tint.green()) << 8) | static_cast<uint32_t>(tint.blue());
+    std::vector<uint32_t> gradient;
+    gradient.reserve(static_cast<std::size_t>(m_colorizeColors.size()));
+    for (const auto& entry : m_colorizeColors) {
+        QColor color = entry.value<QColor>();
+        if (!color.isValid())
+            color = QColor(entry.toString());
+        if (!color.isValid())
+            color = QColor(Qt::transparent);
+        gradient.push_back((static_cast<uint32_t>(color.red()) << 16) | (static_cast<uint32_t>(color.green()) << 8) | static_cast<uint32_t>(color.blue()));
+    }
+    if (gradient.empty())
+        gradient.push_back(0);
+
+    wl_array colors;
+    wl_array_init(&colors);
+    auto* data = static_cast<uint32_t*>(wl_array_add(&colors, gradient.size() * sizeof(uint32_t)));
+    if (data)
+        std::copy(gradient.begin(), gradient.end(), data);
+    hyprion_grade_v1_set_colorize_gradient(grade, &colors, wl_fixed_from_double(m_colorizeAngle));
+    wl_array_release(&colors);
+
     hyprion_grade_v1_set_style(grade, wl_fixed_from_double(m_lightness), wl_fixed_from_double(m_saturation), wl_fixed_from_double(m_chroma),
-                               wl_fixed_from_double(m_hue), wl_fixed_from_double(m_strength), wl_fixed_from_double(m_opacity), tintArgb,
-                               wl_fixed_from_double(m_tintStrength));
+                               wl_fixed_from_double(m_hue), wl_fixed_from_double(m_opacity), wl_fixed_from_double(m_colorizeStrength));
     wl_display_flush(m_manager->display());
 }
