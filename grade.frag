@@ -193,6 +193,16 @@ vec4 transformSample(vec4 sampleColor, vec2 colorizeTarget) {
   return vec4(adjusted * sampleColor.a, sampleColor.a);
 }
 
+// The fallback paints a flat band, but it must still respond to the same
+// grade style the compositor would apply.
+vec4 gradePaint(vec4 paint) {
+  if (paint.a <= 0.001)
+    return paint;
+  if (lightness == 0.0 && saturation == 1.0 && chroma == 0.0 && hue == 0.0 && colorizeStrength <= 0.0)
+    return paint;
+  return transformSample(paint, colorizeChroma(sampleColorizeGradient(qt_TexCoord0)));
+}
+
 void main() {
   if (itemSize.x <= 0.0 || itemSize.y <= 0.0)
     discard;
@@ -222,11 +232,11 @@ void main() {
   vec4 result = vec4(0.0);
 
   if (coverageOutset > 0.0)
-    result += outsetPaint * coverageOutset;
+    result += gradePaint(outsetPaint) * (coverageOutset * gradeOpacity);
 
   if (coverageInset > 0.0) {
     if (flatPaint > 0.5) {
-      result += insetPaint * coverageInset;
+      result += gradePaint(insetPaint) * (coverageInset * gradeOpacity);
     } else {
       float amount = clamp(gradeOpacity * coverageInset, 0.0, 1.0);
       vec4 band = sampleColor;

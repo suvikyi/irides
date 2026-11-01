@@ -61,7 +61,9 @@ Item {
 surface's box exactly. With Hyprion available, the area is sampled by the
 compositor; otherwise the inset band transforms `source` (an opaque fill) or
 paints `insetPaint`. The local fallback cannot sample the backdrop outside the
-surface, so the outset band stays painted there.
+surface, so the outset band stays painted there. Both painted bands still pass
+through the grade style (lightness, chroma, hue and colorize) before they are
+composited.
 
 `Shadow` sizes itself to the surface plus `padding`; centre it on the surface,
 draw it beneath the fill.
