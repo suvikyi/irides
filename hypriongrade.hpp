@@ -7,16 +7,19 @@
 #include <QQuickWindow>
 #include <QtQml/qqmlregistration.h>
 
-class HyprionGlazeManager;
+class HyprionGradeManager;
 
-// Requests a compositor-side Hyprion glaze for an item's surface-local box.
-// It is inert when the Hyprion protocol is unavailable or the item is not on a
-// Wayland surface; Glaze.qml then keeps its local ShaderEffect path.
-class HyprionGlaze : public QObject {
+// Requests a compositor-side Hyprion colour grade for an item's surface-local
+// box. It is inert when the protocol, surface role, or requested mode is
+// unsupported; Grade.qml then keeps its local ShaderEffect path.
+class HyprionGrade : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
     Q_PROPERTY(QQuickItem* item READ item WRITE setItem NOTIFY itemChanged)
+    Q_PROPERTY(int area READ area WRITE setArea NOTIFY areaChanged)
+    Q_PROPERTY(int sourceMode READ sourceMode WRITE setSourceMode NOTIFY sourceModeChanged)
+    Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(qreal insetSize READ insetSize WRITE setInsetSize NOTIFY insetSizeChanged)
     Q_PROPERTY(qreal outsetSize READ outsetSize WRITE setOutsetSize NOTIFY outsetSizeChanged)
     Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged)
@@ -33,12 +36,19 @@ class HyprionGlaze : public QObject {
 
   public:
     void managerChanged();
+    void setSupported(bool supported);
 
-    explicit HyprionGlaze(QObject* parent = nullptr);
-    ~HyprionGlaze() override;
+    explicit HyprionGrade(QObject* parent = nullptr);
+    ~HyprionGrade() override;
 
     QQuickItem* item() const;
     void        setItem(QQuickItem* item);
+    int         area() const;
+    void        setArea(int value);
+    int         sourceMode() const;
+    void        setSourceMode(int value);
+    bool        enabled() const;
+    void        setEnabled(bool value);
     qreal       insetSize() const;
     void        setInsetSize(qreal value);
     qreal       outsetSize() const;
@@ -67,6 +77,9 @@ class HyprionGlaze : public QObject {
 
   signals:
     void itemChanged();
+    void areaChanged();
+    void sourceModeChanged();
+    void enabledChanged();
     void insetSizeChanged();
     void outsetSizeChanged();
     void radiusChanged();
@@ -88,15 +101,20 @@ class HyprionGlaze : public QObject {
     void detachSurface();
     void scheduleFlush();
     void flush();
+    void updateActive();
     void setActive(bool active);
 
-    HyprionGlazeManager* m_manager = nullptr;
+    HyprionGradeManager* m_manager = nullptr;
     QPointer<QQuickItem> m_item;
     QPointer<QQuickWindow> m_window;
     void*                m_waylandWindow = nullptr;
     void*                m_surface       = nullptr;
-    void*                m_glaze         = nullptr;
+    void*                m_grade         = nullptr;
 
+    int    m_area = 1;       // hyprion_grade_v1 area::inset
+    int    m_sourceMode = 1; // hyprion_grade_v1 source::fill
+    bool   m_enabled = true;
+    bool   m_supported = false;
     qreal  m_insetSize = 0;
     qreal  m_outsetSize = 0;
     qreal  m_radius = 0;

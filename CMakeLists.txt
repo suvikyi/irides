@@ -12,21 +12,21 @@ find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
 set(IRIDES_PROTOCOL_OUT "${CMAKE_CURRENT_BINARY_DIR}/protocols")
 add_custom_command(
     OUTPUT
-        "${IRIDES_PROTOCOL_OUT}/hyprion-glaze-v1-client-protocol.h"
-        "${IRIDES_PROTOCOL_OUT}/hyprion-glaze-v1-protocol.c"
+        "${IRIDES_PROTOCOL_OUT}/hyprion-grade-v1-client-protocol.h"
+        "${IRIDES_PROTOCOL_OUT}/hyprion-grade-v1-protocol.c"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${IRIDES_PROTOCOL_OUT}"
-    COMMAND "${WAYLAND_SCANNER}" client-header "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-glaze-v1.xml" "${IRIDES_PROTOCOL_OUT}/hyprion-glaze-v1-client-protocol.h"
-    COMMAND "${WAYLAND_SCANNER}" private-code "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-glaze-v1.xml" "${IRIDES_PROTOCOL_OUT}/hyprion-glaze-v1-protocol.c"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-glaze-v1.xml"
+    COMMAND "${WAYLAND_SCANNER}" client-header "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-grade-v1.xml" "${IRIDES_PROTOCOL_OUT}/hyprion-grade-v1-client-protocol.h"
+    COMMAND "${WAYLAND_SCANNER}" private-code "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-grade-v1.xml" "${IRIDES_PROTOCOL_OUT}/hyprion-grade-v1-protocol.c"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/protocols/hyprion-grade-v1.xml"
     VERBATIM
 )
 
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
 qt_add_library(irides SHARED
-    hyprionglaze.cpp
-    hyprionglaze.hpp
-    "${IRIDES_PROTOCOL_OUT}/hyprion-glaze-v1-protocol.c"
+    hypriongrade.cpp
+    hypriongrade.hpp
+    "${IRIDES_PROTOCOL_OUT}/hyprion-grade-v1-protocol.c"
 )
 
 set_source_files_properties(Oklab.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -35,11 +35,11 @@ qt_add_qml_module(irides
     URI Irides
     VERSION 1.0
     QML_FILES
-        Glaze.qml
+        Grade.qml
         Oklab.qml
         Shadow.qml
     RESOURCES
-        glaze.frag.qsb
+        grade.frag.qsb
         shadow.frag.qsb
 )
 

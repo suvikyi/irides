@@ -4,16 +4,18 @@ QML visual effects extracted from Hyprion's border shader and Hyprland's
 rounded-shadow geometry. Two components, no orbit animation, no host imports —
 anything that needs a compositor fact receives it as a property.
 
-`Glaze` can either paint its local ShaderEffect or ask a running Hyprion
-instance to draw the ring in the compositor. The compositor path samples the
-real framebuffer, including the backdrop behind a translucent surface, and
-falls back to the local shader when the `hyprion_glaze_manager_v1` global is
-unavailable.
+`Grade` is the primitive: it samples pixels and applies an OKLab colour
+transform over an area. It can either paint its local ShaderEffect or ask a
+running Hyprion instance to grade the area in the compositor. The compositor
+path samples the real framebuffer, including the backdrop behind a translucent
+surface, and falls back to the local shader when the `hyprion_grade_manager_v1`
+global or the requested area/source mode is unavailable.
 
-- **`Glaze`** — Hyprion's OKLab border: an inset ring and an outset band over a
-  rounded surface. The inset band paints a colour or transforms the pixels
+- **`Grade`** — a sampled OKLab colour grade over a rounded area. Inset and
+  outset bands are geometry; glazes, shades, tints and washes are effects built
+  from a grade. The inset band paints a colour or transforms the pixels
   beneath it in OKLab (lightness, hue rotation, chroma multiplier and offset,
-  tint), with `strength` mixing the transform and `glazeOpacity` fading it.
+  tint), with `strength` mixing the transform and `gradeOpacity` fading it.
 - **`Shadow`** — an outside-only drop shadow with Hyprland's sharp and soft
   paths, cutting the surface out of the shadow box.
 - **`Oklab`** — OKLab lightness arithmetic on QML colors: `toLab`, `fromLab`,
@@ -42,7 +44,7 @@ Item {
         shadowOpacity: 0.5
     }
 
-    Glaze {
+    Grade {
         anchors.fill: parent
         insetSize: 1
         radius: 6
@@ -51,8 +53,8 @@ Item {
 }
 ```
 
-`Glaze` spans the surface grown by `outsetSize`; with no outset it fills the
-surface's box exactly. With Hyprion available, the ring is drawn by the
+`Grade` spans the surface grown by `outsetSize`; with no outset it fills the
+surface's box exactly. With Hyprion available, the area is sampled by the
 compositor; otherwise the inset band transforms `source` (an opaque fill) or
 paints `insetPaint`. The local fallback cannot sample the backdrop outside the
 surface, so the outset band stays painted there.
@@ -77,13 +79,13 @@ The `*.frag.qsb` files are generated from the `*.frag` sources when they
 change:
 
 ```sh
-qsb --qt6 -o glaze.frag.qsb glaze.frag
+qsb --qt6 -o grade.frag.qsb grade.frag
 qsb --qt6 -o shadow.frag.qsb shadow.frag
 ```
 
 ## Provenance
 
-Both effects are the author's own QML ports: `Glaze` from Hyprion's
+Both effects are the author's own QML ports: `Grade` from Hyprion's
 `HyprionDecoration` fragment shader (the OKLab transform and band coverage),
 `Shadow` from Hyprland's rounded-shadow geometry as first ported in
 5vk1-shell. No third-party source is included.
