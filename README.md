@@ -11,7 +11,8 @@ compositor. The compositor path samples the real framebuffer, including the
 backdrop behind a translucent surface, and falls back to the local shader when
 the `hyprion_grade_manager_v1` global or the requested area is unavailable.
 Blur is requested separately with `ext-background-effect-v1`; the grade then
-samples the composited blurred pixels.
+samples the composited blurred pixels. `composite` selects `replace` or `over`;
+`auto` keeps outset source-over and inset/fill replacement.
 
 - **`Grade`** — a sampled OKLab colour grade over a rounded area. Inset and
   outset bands are geometry; glazes, shades, tints and washes are effects built
