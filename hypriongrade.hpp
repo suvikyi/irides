@@ -18,6 +18,7 @@ class HyprionGrade : public QObject {
 
     Q_PROPERTY(QQuickItem* item READ item WRITE setItem NOTIFY itemChanged)
     Q_PROPERTY(int area READ area WRITE setArea NOTIFY areaChanged)
+    Q_PROPERTY(int composite READ composite WRITE setComposite NOTIFY compositeChanged)
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(qreal insetSize READ insetSize WRITE setInsetSize NOTIFY insetSizeChanged)
     Q_PROPERTY(qreal outsetSize READ outsetSize WRITE setOutsetSize NOTIFY outsetSizeChanged)
@@ -44,6 +45,8 @@ class HyprionGrade : public QObject {
     void        setItem(QQuickItem* item);
     int         area() const;
     void        setArea(int value);
+    int         composite() const;
+    void        setComposite(int value);
     bool        enabled() const;
     void        setEnabled(bool value);
     qreal       insetSize() const;
@@ -75,6 +78,7 @@ class HyprionGrade : public QObject {
   signals:
     void itemChanged();
     void areaChanged();
+    void compositeChanged();
     void enabledChanged();
     void insetSizeChanged();
     void outsetSizeChanged();
@@ -108,6 +112,7 @@ class HyprionGrade : public QObject {
     void*                m_grade         = nullptr;
 
     int    m_area = 1;       // hyprion_grade_v1 area::inset
+    int    m_composite = -1;  // auto
     bool   m_enabled = true;
     bool   m_supported = false;
     qreal  m_insetSize = 0;

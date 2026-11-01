@@ -28,6 +28,10 @@ class HyprionGradeManager {
             return m_manager && m_capabilitiesKnown && (m_areas & areas) != 0;
         }
 
+        bool                       supportsComposite(uint32_t composite) const {
+            return m_manager && m_capabilitiesKnown && (m_composites & composite) != 0;
+        }
+
         wl_display*                display() const {
             return m_display;
         }
@@ -74,9 +78,10 @@ class HyprionGradeManager {
                 grade->managerChanged();
         }
 
-        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas) {
+        static void capabilities(void* data, hyprion_grade_manager_v1*, uint32_t areas, uint32_t composites) {
             auto& self = *static_cast<HyprionGradeManager*>(data);
             self.m_areas = areas;
+            self.m_composites = composites;
             self.m_capabilitiesKnown = true;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
@@ -90,6 +95,7 @@ class HyprionGradeManager {
             self.m_managerName = 0;
             self.m_capabilitiesKnown = false;
             self.m_areas = 0;
+            self.m_composites = 0;
             for (auto* grade : self.m_grades)
                 grade->managerChanged();
         }
@@ -104,6 +110,7 @@ class HyprionGradeManager {
         uint32_t                  m_managerName = 0;
         bool                      m_capabilitiesKnown = false;
         uint32_t                  m_areas = 0;
+        uint32_t                  m_composites = 0;
         std::vector<HyprionGrade*> m_grades;
 };
 
@@ -160,6 +167,17 @@ void HyprionGrade::setArea(int value) {
         return;
     m_area = value;
     emit areaChanged();
+    updateActive();
+    scheduleFlush();
+}
+int HyprionGrade::composite() const {
+    return m_composite;
+}
+void HyprionGrade::setComposite(int value) {
+    if (m_composite == value)
+        return;
+    m_composite = value;
+    emit compositeChanged();
     updateActive();
     scheduleFlush();
 }
@@ -390,7 +408,8 @@ void HyprionGrade::detachSurface() {
 }
 
 void HyprionGrade::updateActive() {
-    const bool active = m_enabled && m_supported && m_grade && m_manager && m_manager->supports(m_area);
+    const bool active = m_enabled && m_supported && m_grade && m_manager && m_manager->supports(m_area) &&
+        (m_composite < 0 || m_manager->supportsComposite(static_cast<uint32_t>(m_composite)));
     setActive(active);
 }
 
@@ -428,6 +447,8 @@ void HyprionGrade::flush() {
     hyprion_grade_v1_set_enabled(grade, m_enabled ? 1 : 0);
     hyprion_grade_v1_set_box(grade, x, y, width, height, wl_fixed_from_double(m_radius), wl_fixed_from_double(m_roundingPower));
     hyprion_grade_v1_set_area(grade, static_cast<uint32_t>(m_area), qRound(m_insetSize), qRound(m_outsetSize));
+    if (m_composite >= 0)
+        hyprion_grade_v1_set_composite(grade, static_cast<uint32_t>(m_composite));
 
     const QColor tint = m_tint;
     const uint32_t tintArgb = (static_cast<uint32_t>(tint.red()) << 16) | (static_cast<uint32_t>(tint.green()) << 8) | static_cast<uint32_t>(tint.blue());

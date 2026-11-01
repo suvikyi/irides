@@ -21,6 +21,12 @@ ShaderEffect {
     property int area: (insetSize > 0 && outsetSize > 0) ? (areaInset | areaOutset)
         : (outsetSize > 0 ? areaOutset : areaInset)
 
+    // Composite mode. Auto keeps outset source-over and inset/fill replace.
+    readonly property int compositeAuto: -1
+    readonly property int compositeReplace: 1
+    readonly property int compositeOver: 2
+    property int composite: compositeAuto
+
     // Band widths. Zero disables either band.
     property real insetSize: 0
     property real outsetSize: 0
@@ -56,6 +62,7 @@ ShaderEffect {
         id: compositor
         item: root
         area: root.area
+        composite: root.composite
         enabled: root.painting
         insetSize: root.insetSize
         outsetSize: root.outsetSize
