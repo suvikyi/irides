@@ -10,7 +10,7 @@ import QtQuick
 // ext-background-effect-v1; the grade samples the blurred result. The
 // ShaderEffect is the portable SDR fallback and can only transform an explicit
 // `source` texture or paint a flat band.
-ShaderEffect {
+Item {
     id: root
 
     // Area bits. The compositor advertises which it implements.
@@ -72,7 +72,7 @@ ShaderEffect {
         item: root
         area: root.area
         mode: root.mode
-        enabled: root.painting
+        enabled: root.painting && root.visible
         insetSize: root.insetSize
         outsetSize: root.outsetSize
         radius: root.radius
@@ -88,10 +88,43 @@ ShaderEffect {
     }
 
     readonly property bool compositorActive: compositor.active
-    visible: painting && !compositorActive
-
-    fragmentShader: Qt.resolvedUrl("grade.frag.qsb")
     property vector2d itemSize: Qt.vector2d(width, height)
     property vector2d surfaceSize: Qt.vector2d(surfaceWidth, surfaceHeight)
     property real flatPaint: source === null ? 1 : 0
+
+    // Consumers own this item's visibility. Keep fallback selection on a
+    // private child so an explicit visible binding cannot paint both paths.
+    ShaderEffect {
+        anchors.fill: parent
+        visible: root.painting && !root.compositorActive
+        fragmentShader: Qt.resolvedUrl("grade.frag.qsb")
+        property var source: root.source
+        property vector2d itemSize: root.itemSize
+        property vector2d surfaceSize: root.surfaceSize
+        property real flatPaint: root.flatPaint
+        property real insetSize: root.insetSize
+        property real outsetSize: root.outsetSize
+        property real radius: root.radius
+        property real roundingPower: root.roundingPower
+        property color insetPaint: root.insetPaint
+        property color outsetPaint: root.outsetPaint
+        property real gradeOpacity: root.gradeOpacity
+        property real lightness: root.lightness
+        property real saturation: root.saturation
+        property real chroma: root.chroma
+        property real hue: root.hue
+        property real colorizeStrength: root.colorizeStrength
+        property int colorizeStopCount: root.colorizeStopCount
+        property real colorizeAngle: root.colorizeAngle
+        property color colorizeStop0: root.colorizeStop0
+        property color colorizeStop1: root.colorizeStop1
+        property color colorizeStop2: root.colorizeStop2
+        property color colorizeStop3: root.colorizeStop3
+        property color colorizeStop4: root.colorizeStop4
+        property color colorizeStop5: root.colorizeStop5
+        property color colorizeStop6: root.colorizeStop6
+        property color colorizeStop7: root.colorizeStop7
+        property color colorizeStop8: root.colorizeStop8
+        property color colorizeStop9: root.colorizeStop9
+    }
 }

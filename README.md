@@ -65,6 +65,20 @@ surface, so the outset band stays painted there. Both painted bands still pass
 through the grade style (lightness, chroma, hue and colorize) before they are
 composited.
 
+`Grade.visible` belongs to the application. The local shader is a private
+child and is hidden whenever `compositorActive` is true, even when the
+application supplies its own `visible` binding. Hiding the component or an
+ancestor disables its compositor grade as well. Do not paint a separate local
+fallback underneath an active grade: it would become the sampled source and
+be transformed a second time.
+
+Irides 0.2.2 fixes fallback/compositor exclusivity for consumers such as Shiki.
+The module import remains `Irides 0.2`; rebuild the compiled module and
+restart the consuming application after upgrading. The Hyprion v1 wire
+protocol is unchanged; its bundled descriptions now document Hyprion 0.4's
+ordered surface-local sampling.
+
+
 `Shadow` sizes itself to the surface plus `padding`; centre it on the surface,
 draw it beneath the fill.
 
