@@ -62,7 +62,7 @@ Item {
     readonly property real surfaceWidth: Math.max(0, width - 2 * outsetSize)
     readonly property real surfaceHeight: Math.max(0, height - 2 * outsetSize)
 
-    readonly property bool painting: insetSize > 0 || outsetSize > 0
+    readonly property bool painting: insetSize > 0 || outsetSize > 0 || area === areaFill
 
     // Ask Hyprion to grade the area in the compositor when the protocol and
     // the requested modes are available. That path samples the real

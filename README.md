@@ -19,7 +19,7 @@ and inset/fill in-place.
   outset bands are geometry; glazes, shades, colorizations and washes are effects built
   from a grade. The inset band paints a colour or transforms the pixels
   beneath it in the grade space (lightness, hue rotation, chroma multiplier and
-  offset, and a colorize gradient target), with `gradeOpacity` fading it. `area` defaults to inset; set it explicitly for outset or fill. `colorizeColors` and `colorizeAngle` use Hyprland's gradient format; the local fallback supports the same stops, up to ten, in SDR.
+  offset, and a colorize gradient target), with `gradeOpacity` fading it. `area` defaults to inset; set it explicitly for outset or fill. `areaFill` grades the surface box without band geometry; the compositor path supports it, while the local fallback paints only bands, so fill-area consumers supply their own fallback paint. `colorizeColors` and `colorizeAngle` use Hyprland's gradient format; the local fallback supports the same stops, up to ten, in SDR.
 - **`Shadow`** — an outside-only drop shadow with Hyprland's sharp and soft
   paths, cutting the surface out of the shadow box.
 - **`Oklab`** — OKLab lightness arithmetic on QML colors: `toLab`, `fromLab`,
@@ -72,9 +72,10 @@ ancestor disables its compositor grade as well. Do not paint a separate local
 fallback underneath an active grade: it would become the sampled source and
 be transformed a second time.
 
-Irides 0.2.2 fixes fallback/compositor exclusivity for consumers such as Shiki.
-The module import remains `Irides 0.2`; rebuild the compiled module and
-restart the consuming application after upgrading. The Hyprion v1 wire
+Irides 0.2.2 fixes fallback/compositor exclusivity for consumers such as Shiki;
+0.2.3 enables the `areaFill` compositor path without band geometry. The module
+import remains `Irides 0.2`; rebuild the compiled module and restart the
+consuming application after upgrading. The Hyprion v1 wire
 protocol is unchanged; its bundled descriptions now document Hyprion 0.4's
 ordered surface-local sampling.
 
